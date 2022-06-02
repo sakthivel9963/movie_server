@@ -5,6 +5,12 @@ const { User } = require('../models');
 userRouter.post('/add_user', async (request, response) => {
   try {
     const requestBody = request.body;
+    const userData = await User.findOne({ email: requestBody.email });
+    if (userData) {
+      return response.status(400).send({
+        message: 'User already exits.',
+      });
+    }
     const user = new User(requestBody);
     user.password = bcrypt.hashSync(requestBody.password, 10);
     await user.save();
@@ -38,11 +44,16 @@ userRouter.post('/user_login', async (request, response) => {
     response.cookie(`login_cookie`, `${userData._id}`, {
       maxAge: 1000 * 60 * 60,
       expires: new Date(),
-      secure: true,
+      secure: false,
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: true,
     });
-    response.send({ message: 'success' });
+    response.send({
+      message: 'success',
+      data: {
+        id: userData._id,
+      },
+    });
   } catch (error) {
     console.error(error);
     response.status(500).send(error);
